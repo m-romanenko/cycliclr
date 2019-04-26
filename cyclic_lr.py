@@ -39,27 +39,27 @@ class CyclicLR(LearningRateScheduler):
         super(LearningRateScheduler, self).__init__()
         self.schedule = self.cyclic_lr
 
-    def cyclic_lr(self, epoch):
-	if self.scale_fn is None:
-	    if self.mode == 'triangular':
-		self.scale_fn = lambda x: 1.
-		self.scale_mode = 'cycle'
-	    elif self.mode == 'triangular2':
-		self.scale_fn = lambda x: 1 / (2.**(x - 1))
-		self.scale_mode = 'cycle'
-	    elif self.mode == 'exp_range':
-		self.scale_fn = lambda x: gamma ** x
-		self.scale_mode = 'iterations'
-	else:
-	    self.scale_fn = self.scale_fn
-	    self.scale_mode = self.scale_mode
+    def cyclic_lr(self, epochs):
+        if self.scale_fn is None:
+            if self.mode == 'triangular':
+        	self.scale_fn = lambda x: 1.
+        	self.scale_mode = 'cycle'
+            elif self.mode == 'triangular2':
+                self.scale_fn = lambda x: 1 / (2.**(x - 1))
+                self.scale_mode = 'cycle'
+            elif self.mode == 'exp_range':
+                self.scale_fn = lambda x: gamma ** x
+                self.scale_mode = 'iterations'
+        else:
+            self.scale_fn = self.scale_fn
+            self.scale_mode = self.scale_mode
 
-	cycle = np.floor(1 + epochs / (2 * self.step_size))
-	x = np.abs(epochs / self.step_size - 2 * cycle + 1)
+        cycle = np.floor(1 + epochs / (2 * self.step_size))
+        x = np.abs(epochs / self.step_size - 2 * cycle + 1)
 
-	if self.scale_mode == 'cycle':
-	    return self.base_lr + (self.max_lr - self.base_lr) * \
-		np.maximum(0, (1 - x)) * self.scale_fn(cycle)
-	else:
-	    return self.base_lr + (self.max_lr - self.base_lr) * \
-		np.maximum(0, (1 - x)) * self.scale_fn(epochs)
+        if self.scale_mode == 'cycle':
+            return self.base_lr + (self.max_lr - self.base_lr) * \
+                np.maximum(0, (1 - x)) * self.scale_fn(cycle)
+        else:
+            return self.base_lr + (self.max_lr - self.base_lr) * \
+                np.maximum(0, (1 - x)) * self.scale_fn(epochs)
