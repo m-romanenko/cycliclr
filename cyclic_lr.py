@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import attr
 
 
 class LearningRateScheduler(tf.keras.callbacks.Callback):
@@ -10,7 +10,6 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
           (integer, indexed from 0) and current learning rate
           as inputs and returns a new learning rate as output (float).
     """
-
     def __init__(self, schedule):
         super(LearningRateScheduler, self).__init__()
         self.schedule = schedule
@@ -27,10 +26,40 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
         print('\nEpoch %05d: Learning rate is %6.4f.' % (epoch, scheduled_lr))
 
 
-
+@attr.s
 class CyclicLR(LearningRateScheduler):
+    base_lr = attr.ib(default=0.001)
+    max_lr = attr.ib(default=0.006)
+    step_size = attr.ib(default=2000.)
+    scale_mode = attr.ib(default='cycle')
+    scale_fn = attr.ib(default=None)
+    mode = attr.ib(default='triangular')
 
-    def __init__(self, base_lr, max_lr, step_size, scale_mode, scale_fn, mode):
+    def __init__(self):
         super(LearningRateScheduler, self).__init__()
         self.schedule = self.cyclic_lr
 
+    def cyclic_lr(self, epoch):
+	if self.scale_fn is None:
+	    if self.mode == 'triangular':
+		self.scale_fn = lambda x: 1.
+		self.scale_mode = 'cycle'
+	    elif self.mode == 'triangular2':
+		self.scale_fn = lambda x: 1 / (2.**(x - 1))
+		self.scale_mode = 'cycle'
+	    elif self.mode == 'exp_range':
+		self.scale_fn = lambda x: gamma ** x
+		self.scale_mode = 'iterations'
+	else:
+	    self.scale_fn = self.scale_fn
+	    self.scale_mode = self.scale_mode
+
+	cycle = np.floor(1 + epochs / (2 * self.step_size))
+	x = np.abs(epochs / self.step_size - 2 * cycle + 1)
+
+	if self.scale_mode == 'cycle':
+	    return self.base_lr + (self.max_lr - self.base_lr) * \
+		np.maximum(0, (1 - x)) * self.scale_fn(cycle)
+	else:
+	    return self.base_lr + (self.max_lr - self.base_lr) * \
+		np.maximum(0, (1 - x)) * self.scale_fn(epochs)
