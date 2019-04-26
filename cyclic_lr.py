@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 import attr
 
 
@@ -28,6 +29,14 @@ class LearningRateScheduler(tf.keras.callbacks.Callback):
 
 @attr.s
 class CyclicLR(LearningRateScheduler):
+    """
+    Cyclical learning rate policy (CLR)
+
+    References:
+    - [Cyclical Learning Rates for Training Neural Networks](https://arxiv.org/abs/1506.01186)
+    - [Cyclical Learning Rate Keras callback] (https://github.com/bckenstler/CLR)
+    """
+
     base_lr = attr.ib(default=0.001)
     max_lr = attr.ib(default=0.006)
     step_size = attr.ib(default=2000.)
@@ -35,15 +44,11 @@ class CyclicLR(LearningRateScheduler):
     scale_fn = attr.ib(default=None)
     mode = attr.ib(default='triangular')
 
-    def __init__(self):
-        super(LearningRateScheduler, self).__init__()
-        self.schedule = self.cyclic_lr
-
-    def cyclic_lr(self, epochs):
+    def schedule(self, epochs):
         if self.scale_fn is None:
             if self.mode == 'triangular':
-        	self.scale_fn = lambda x: 1.
-        	self.scale_mode = 'cycle'
+                self.scale_fn = lambda x: 1.
+                self.scale_mode = 'cycle'
             elif self.mode == 'triangular2':
                 self.scale_fn = lambda x: 1 / (2.**(x - 1))
                 self.scale_mode = 'cycle'
@@ -63,3 +68,4 @@ class CyclicLR(LearningRateScheduler):
         else:
             return self.base_lr + (self.max_lr - self.base_lr) * \
                 np.maximum(0, (1 - x)) * self.scale_fn(epochs)
+
